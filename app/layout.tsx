@@ -4,6 +4,7 @@ import localFont from 'next/font/local'
 
 import Header from '@/components/business/Header'
 import WalletProvider from '@/lib/providers/WalletProvider'
+import { PortfolioProvider } from '@/lib/providers/PortfolioProvider'
 
 import './globals.css'
 
@@ -30,13 +31,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${font.variable} antialiased`}>
-        <main>
+      <body
+        className={`${font.variable} antialiased w-screen h-screen flex flex-col`}
+      >
+        <PortfolioProvider>
           <WalletProvider>
             <Header />
-            {children}
+            <main className="flex-1">{children}</main>
           </WalletProvider>
-        </main>
+        </PortfolioProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

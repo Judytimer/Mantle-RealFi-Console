@@ -32,7 +32,7 @@ export default function TopBar() {
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
       {/* Logo */}
-      <Link href="/">
+      <Link href="/dashboard">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">
