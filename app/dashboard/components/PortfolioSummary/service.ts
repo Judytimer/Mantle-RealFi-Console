@@ -34,11 +34,22 @@ export default function usePortfolioSummary() {
     })
   }
 
-  // Mock yield curve data
-  const yieldCurve = Array.from({ length: 30 }, (_, i) => ({
-    day: i + 1,
-    yield: 0.02 + Math.random() * 0.01 + i * 0.0002,
-  }))
+  const yieldCurve = Array.from({ length: 30 }, (_, i) => {
+    const base = 0.02 + i * 0.00015
+    const realized = base + (Math.random() - 0.5) * 0.002
+    const projected = base + 0.0015 + (Math.random() - 0.5) * 0.001
+    return {
+      day: i + 1,
+      realized: Number(realized.toFixed(4)),
+      projected: Number(projected.toFixed(4)),
+    }
+  })
+
+  const payoutEvents = [
+    { day: 7, label: 'Payout' },
+    { day: 15, label: 'Distribution' },
+    { day: 23, label: 'Payout' },
+  ]
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -62,5 +73,6 @@ export default function usePortfolioSummary() {
     getNextPayout,
     getRiskColor,
     yieldCurve,
+    payoutEvents,
   }
 }
