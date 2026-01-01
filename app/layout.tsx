@@ -31,12 +31,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${font.variable} antialiased`}>
-        <WalletProvider>
-          <main>
+        <main>
+          <WalletProvider>
             <Header />
             {children}
-          </main>
-        </WalletProvider>
+          </WalletProvider>
+        </main>
         <Toaster position="top-center" richColors />
       </body>
     </html>
