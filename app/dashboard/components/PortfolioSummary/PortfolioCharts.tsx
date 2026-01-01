@@ -49,27 +49,25 @@ export default function PortfolioCharts({
         <div className="metric-label mb-3">Allocation</div>
         <div className="flex items-center gap-4">
           <div className="w-24 h-24">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={allocation}
-                  dataKey="percentage"
-                  nameKey="type"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={25}
-                  outerRadius={40}
-                  strokeWidth={0}
-                >
-                  {allocation.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={colors[index % colors.length]}
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChart width={96} height={96}>
+              <Pie
+                data={allocation}
+                dataKey="percentage"
+                nameKey="type"
+                cx="50%"
+                cy="50%"
+                innerRadius={25}
+                outerRadius={40}
+                strokeWidth={0}
+              >
+                {allocation.map((_, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
           </div>
           <div className="flex-1 space-y-1.5">
             {allocation.map((item, index) => (
@@ -106,7 +104,7 @@ export default function PortfolioCharts({
           </div>
         </div>
         <div className="h-24">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={96} minWidth={0}>
             <LineChart data={yieldCurve}>
               <XAxis dataKey="day" hide />
               <YAxis hide domain={['dataMin - 0.005', 'dataMax + 0.005']} />

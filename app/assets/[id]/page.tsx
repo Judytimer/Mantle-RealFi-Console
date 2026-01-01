@@ -332,7 +332,7 @@ export default function AssetDetailPage() {
           <div className="metric-card">
             <h3 className="font-medium mb-4">30D Yield History</h3>
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={192} minWidth={0}>
                 <LineChart data={yieldChartData}>
                   <XAxis dataKey="day" hide />
                   <YAxis hide />
@@ -363,7 +363,7 @@ export default function AssetDetailPage() {
           <div className="metric-card">
             <h3 className="font-medium mb-4">30D NAV Trend</h3>
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={192} minWidth={0}>
                 <AreaChart data={navChartData}>
                   <XAxis dataKey="day" hide />
                   <YAxis hide />
