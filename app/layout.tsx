@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${font.variable} antialiased w-screen h-screen flex flex-col`}
+        className={`${font.variable} antialiased w-screen h-screen flex flex-col dark`}
       >
         <PortfolioProvider>
           <WalletProvider>

@@ -67,7 +67,7 @@ export default function TopBar() {
             <DropdownMenuTrigger asChild>
               <Button
                 size="sm"
-                variant="outline"
+                variant="default"
                 className="gap-2 cursor-pointer"
               >
                 <Wallet className="w-4 h-4" />
@@ -96,7 +96,12 @@ export default function TopBar() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button onClick={connect} size="sm" className="gap-2 cursor-pointer">
+          <Button
+            size="sm"
+            onClick={connect}
+            variant="default"
+            className="gap-2 cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
+          >
             <Wallet className="w-4 h-4" />
             Connect Wallet
           </Button>
