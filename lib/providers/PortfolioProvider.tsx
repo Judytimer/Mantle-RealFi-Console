@@ -112,10 +112,9 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
   const getAllocation = () => {
     const totalAUM = getTotalAUM()
     const allocationMap: Record<string, number> = {
+      Treasury: 0,
       'Real Estate': 0,
-      Bonds: 0,
-      Invoices: 0,
-      'Cash Flow': 0,
+      Credit: 0,
       Cash: portfolio.cashUsd,
     }
 
@@ -126,11 +125,11 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
         const label =
           asset.type === 'real-estate'
             ? 'Real Estate'
-            : asset.type === 'bonds'
-              ? 'Bonds'
-              : asset.type === 'invoices'
-                ? 'Invoices'
-                : 'Cash Flow'
+            : asset.type === 'treasury'
+              ? 'Treasury'
+              : asset.type === 'credit'
+                ? 'Credit'
+                : 'Cash'
         allocationMap[label] += value
       }
     })
