@@ -2,12 +2,15 @@ import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 
+import Header from '@/components/business/Header'
+import WalletProvider from '@/lib/providers/WalletProvider'
+
 import './globals.css'
 
 const font = localFont({
   src: [
     {
-      path: './fonts/NunitoSans.tff',
+      path: './fonts/NunitoSans.ttf',
       weight: '400',
       style: 'normal',
     },
@@ -28,7 +31,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${font.variable} antialiased`}>
-        <main>{children}</main>
+        <WalletProvider>
+          <main>
+            <Header />
+            {children}
+          </main>
+        </WalletProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>
