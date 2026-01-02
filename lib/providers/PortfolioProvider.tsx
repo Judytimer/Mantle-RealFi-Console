@@ -8,11 +8,13 @@ interface PortfolioContextType {
   portfolio: Portfolio
   addPosition: (assetId: string, shares: number) => void
   redeemPosition: (assetId: string, shares: number) => void
+  refreshPortfolio: () => Promise<void>
   getTotalAUM: () => number
   getWeightedAPY: () => number
   getRiskScore: () => number
   getAllocation: () => { type: string; value: number; percentage: number }[]
   loading: boolean
+  isRefreshing: boolean
 }
 
 export const PortfolioContext = createContext<PortfolioContextType | undefined>(
@@ -25,6 +27,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
   const { address } = useAccount()
   const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio)
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [apiMetrics, setApiMetrics] = useState<{
     totalAUM: number
     weightedAPY: number
@@ -32,9 +35,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
     allocation: Record<string, number>
   } | null>(null)
 
-  const fetchPortfolio = async () => {
+  const fetchPortfolio = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setIsRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       const response = await fetch('/api/portfolio')
       if (!response.ok) {
         console.error('Failed to fetch portfolio')
@@ -65,8 +72,19 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
       })
     } catch (err) {
       console.error('Error fetching portfolio:', err)
+      throw err // Re-throw so caller can handle
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  const refreshPortfolio = async () => {
+    try {
+      await fetchPortfolio(true)
+    } catch (err) {
+      console.error('Error refreshing portfolio:', err)
+      // Don't throw - allow user to continue
     }
   }
 
@@ -191,11 +209,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
         portfolio,
         addPosition,
         redeemPosition,
+        refreshPortfolio,
         getTotalAUM,
         getWeightedAPY,
         getRiskScore,
         getAllocation,
         loading,
+        isRefreshing,
       }}
     >
       {children}

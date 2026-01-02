@@ -1,7 +1,15 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ArrowDownToLine, ArrowUpDown, Eye, Plus, Search } from 'lucide-react'
+import {
+  ArrowDownToLine,
+  ArrowUpDown,
+  Eye,
+  Plus,
+  Search,
+  PlusCircle,
+} from 'lucide-react'
+import { toast } from 'sonner'
 
 import useAssetsTable from './service'
 import AddPositionModal from '@/components/AddPositionModal'
@@ -90,9 +98,24 @@ export default function AssetsTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          Assets
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Assets
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              toast.info('Add Asset', {
+                description: 'Asset creation functionality coming soon',
+              })
+            }}
+            className="h-9"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Add Asset
+          </Button>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

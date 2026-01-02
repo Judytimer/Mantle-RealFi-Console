@@ -6,6 +6,37 @@ import { type Address, formatUnits } from 'viem'
 import { getContractAddress } from '@/lib/services/contractService'
 import { RWA_TOKEN_ABI } from '@/app/frontend-abi'
 
+// ERC20 ABI for payment token operations
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    name: 'allowance',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
 /**
  * Hook to read asset info from contract
  */
@@ -175,5 +206,96 @@ export function useYieldComponents(asset: {
     count: componentCount,
     isLoading: isLoadingCount,
     componentIndices,
+  }
+}
+
+/**
+ * Hook to read payment token address from RWA contract
+ */
+export function usePaymentTokenAddress(asset: {
+  id: string
+  name: string
+  tokenAddress?: string | null
+}) {
+  const contractAddress = useMemo(
+    () => getContractAddress(asset),
+    [asset.id, asset.name, asset.tokenAddress],
+  )
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: contractAddress || undefined,
+    abi: RWA_TOKEN_ABI,
+    functionName: 'paymentToken',
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+
+  return {
+    paymentTokenAddress: data ? (data as Address) : null,
+    isLoading,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * Hook to read payment token allowance
+ */
+export function usePaymentTokenAllowance(
+  paymentTokenAddress: Address | null,
+  ownerAddress: Address | null,
+  spenderAddress: Address | null,
+) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: paymentTokenAddress || undefined,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args:
+      ownerAddress && spenderAddress
+        ? [ownerAddress, spenderAddress]
+        : undefined,
+    query: {
+      enabled: !!paymentTokenAddress && !!ownerAddress && !!spenderAddress,
+    },
+  })
+
+  return {
+    allowance: data ? Number(formatUnits(data, 18)) : 0,
+    allowanceRaw: data || BigInt(0),
+    isLoading,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * Hook to read minimum investment from contract
+ */
+export function useMinimumInvestment(asset: {
+  id: string
+  name: string
+  tokenAddress?: string | null
+}) {
+  const contractAddress = useMemo(
+    () => getContractAddress(asset),
+    [asset.id, asset.name, asset.tokenAddress],
+  )
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: contractAddress || undefined,
+    abi: RWA_TOKEN_ABI,
+    functionName: 'minimumInvestment',
+    query: {
+      enabled: !!contractAddress,
+    },
+  })
+
+  return {
+    minimumInvestment: data ? Number(formatUnits(data, 18)) : 0,
+    minimumInvestmentRaw: data || BigInt(0),
+    isLoading,
+    error,
+    refetch,
   }
 }

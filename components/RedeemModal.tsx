@@ -20,11 +20,22 @@ interface RedeemModalProps {
 }
 
 export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
-  const { portfolio, redeemPosition } = usePortfolio()
+  const { portfolio, refreshPortfolio, isRefreshing } = usePortfolio()
   const { isConnected, connect } = useWallet()
   const { address } = useAccount()
   const chainId = useChainId()
   const [shares, setShares] = useState(1)
+
+  const handleRefresh = async () => {
+    try {
+      await refreshPortfolio()
+    } catch (err) {
+      console.error('Failed to refresh portfolio:', err)
+      toast.error('Failed to refresh', {
+        description: 'Please refresh the page manually',
+      })
+    }
+  }
 
   // Read token balance from contract
   const { balance: contractBalance, isLoading: isLoadingBalance } =
@@ -41,12 +52,24 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
   const currentShares =
     contractBalance > 0 ? contractBalance : portfolio.holdings[asset.id] || 0
 
-  const { redeem, reset, status, hash, error, isPending, isSuccess } =
-    useRedeem({
+  const {
+    redeem,
+    reset,
+    status,
+    hash,
+    error,
+    isPending,
+    isSuccess,
+    canRedeem: canRedeemFromContract,
+    isLoadingCanRedeem,
+  } = useRedeem(
+    {
       id: asset.id,
       name: asset.name,
       tokenAddress: asset.tokenAddress,
-    })
+    },
+    handleRefresh,
+  )
 
   const value = shares * asset.price
   const isCorrectNetwork = chainId === mantleTestnet.id
@@ -55,16 +78,16 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
     isCorrectNetwork &&
     shares <= currentShares &&
     shares > 0 &&
-    !isPending
+    !isPending &&
+    (isLoadingCanRedeem ? true : canRedeemFromContract)
 
   // Close modal on successful transaction
   useEffect(() => {
     if (isSuccess) {
-      // Refresh portfolio after a short delay to allow blockchain state to update
+      // Portfolio refresh is handled by onSuccess callback
       setTimeout(() => {
-        window.location.reload() // Simple refresh for now, can be optimized later
-      }, 2000)
-      onClose()
+        onClose()
+      }, 1000)
     }
   }, [isSuccess, onClose])
 
@@ -181,10 +204,34 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
             </div>
           )}
 
+          {isLoadingCanRedeem && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Checking redemption eligibility...</span>
+            </div>
+          )}
+
+          {!isLoadingCanRedeem && !canRedeemFromContract && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>
+                Redemption is not allowed at this time. Please check the asset
+                details.
+              </span>
+            </div>
+          )}
+
           {shares > currentShares && (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4" />
               <span>Cannot exceed current position</span>
+            </div>
+          )}
+
+          {isRefreshing && (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Refreshing portfolio...</span>
             </div>
           )}
 

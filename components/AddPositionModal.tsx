@@ -22,31 +22,62 @@ export default function AddPositionModal({
   asset,
   onClose,
 }: AddPositionModalProps) {
-  const { portfolio, addPosition } = usePortfolio()
+  const { portfolio, refreshPortfolio, isRefreshing } = usePortfolio()
   const { isConnected, connect } = useWallet()
   const { address } = useAccount()
   const chainId = useChainId()
   const [shares, setShares] = useState(1)
 
-  const { invest, reset, status, hash, error, isPending, isSuccess } =
-    useInvest({
+  const handleRefresh = async () => {
+    try {
+      await refreshPortfolio()
+    } catch (err) {
+      console.error('Failed to refresh portfolio:', err)
+      toast.error('Failed to refresh', {
+        description: 'Please refresh the page manually',
+      })
+    }
+  }
+
+  const {
+    invest,
+    reset,
+    status,
+    hash,
+    error,
+    isPending,
+    isSuccess,
+    needsApproval,
+    isLoadingApproval,
+    allowance,
+    minimumInvestment,
+    isLoadingMinimum,
+  } = useInvest(
+    {
       id: asset.id,
       name: asset.name,
       tokenAddress: asset.tokenAddress,
-    })
+    },
+    handleRefresh,
+  )
 
   const cost = shares * asset.price
   const isCorrectNetwork = chainId === mantleTestnet.id
-  const canInvest = isConnected && isCorrectNetwork && !isPending
+  const isValidAmount =
+    shares > 0 &&
+    (!isLoadingMinimum && minimumInvestment > 0
+      ? cost >= minimumInvestment
+      : true)
+  const canInvest =
+    isConnected && isCorrectNetwork && !isPending && isValidAmount
 
   // Close modal on successful transaction
   useEffect(() => {
     if (isSuccess) {
-      // Refresh portfolio after a short delay to allow blockchain state to update
+      // Portfolio refresh is handled by onSuccess callback
       setTimeout(() => {
-        window.location.reload() // Simple refresh for now, can be optimized later
-      }, 2000)
-      onClose()
+        onClose()
+      }, 1000)
     }
   }, [isSuccess, onClose])
 
@@ -136,6 +167,36 @@ export default function AddPositionModal({
             </span>
           </div>
 
+          {isLoadingMinimum && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Loading minimum investment...</span>
+            </div>
+          )}
+
+          {!isLoadingMinimum && minimumInvestment > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Minimum Investment</span>
+              <span className="text-foreground">
+                {formatCurrency(minimumInvestment)}
+              </span>
+            </div>
+          )}
+
+          {isLoadingApproval && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Checking approval status...</span>
+            </div>
+          )}
+
+          {needsApproval && !isLoadingApproval && (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <AlertCircle className="w-4 h-4" />
+              <span>Payment token approval required</span>
+            </div>
+          )}
+
           {!isConnected && (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4" />
@@ -147,6 +208,24 @@ export default function AddPositionModal({
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4" />
               <span>Please switch to {mantleTestnet.name}</span>
+            </div>
+          )}
+
+          {!isLoadingMinimum &&
+            minimumInvestment > 0 &&
+            cost < minimumInvestment && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="w-4 h-4" />
+                <span>
+                  Amount must be at least {formatCurrency(minimumInvestment)}
+                </span>
+              </div>
+            )}
+
+          {isRefreshing && (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Refreshing portfolio...</span>
             </div>
           )}
 
@@ -191,7 +270,7 @@ export default function AddPositionModal({
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing...
+                  {needsApproval ? 'Approving...' : 'Processing...'}
                 </>
               ) : (
                 'Invest'

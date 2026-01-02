@@ -116,6 +116,7 @@ export default function useAssetsTable() {
       return ((aVal as number) - (bVal as number)) * modifier
     })
   }, [
+    assets,
     search,
     sortField,
     sortDirection,
