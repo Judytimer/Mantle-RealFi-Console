@@ -1,13 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertCircle, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
+import { useAccount, useChainId } from 'wagmi'
+import { AlertCircle, X, Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { useWallet } from '@/lib/hooks/useWallet'
 import usePortfolio from '@/lib/hooks/usePortfolio'
+import { useInvest } from '@/lib/hooks/useContractWrite'
 import { type Asset, formatCurrency } from '@/lib/mockData'
+import { mantleTestnet } from '@/lib/config/networks'
 
 interface AddPositionModalProps {
   asset: Asset
@@ -19,19 +23,65 @@ export default function AddPositionModal({
   onClose,
 }: AddPositionModalProps) {
   const { portfolio, addPosition } = usePortfolio()
+  const { isConnected, connect } = useWallet()
+  const { address } = useAccount()
+  const chainId = useChainId()
   const [shares, setShares] = useState(1)
 
-  const cost = shares * asset.price
-  const canAfford = cost <= portfolio.cashUsd
-
-  const handleSubmit = () => {
-    if (!canAfford) return
-
-    addPosition(asset.id, shares)
-    toast.success('Position Added', {
-      description: `Added ${shares} units of ${asset.name}`,
+  const { invest, reset, status, hash, error, isPending, isSuccess } =
+    useInvest({
+      id: asset.id,
+      name: asset.name,
+      tokenAddress: asset.tokenAddress,
     })
-    onClose()
+
+  const cost = shares * asset.price
+  const isCorrectNetwork = chainId === mantleTestnet.id
+  const canInvest = isConnected && isCorrectNetwork && !isPending
+
+  // Close modal on successful transaction
+  useEffect(() => {
+    if (isSuccess) {
+      // Refresh portfolio after a short delay to allow blockchain state to update
+      setTimeout(() => {
+        window.location.reload() // Simple refresh for now, can be optimized later
+      }, 2000)
+      onClose()
+    }
+  }, [isSuccess, onClose])
+
+  const handleSubmit = async () => {
+    if (!isConnected) {
+      toast.error('Wallet not connected', {
+        description: 'Please connect your wallet to invest',
+        action: {
+          label: 'Connect',
+          onClick: () => connect(),
+        },
+      })
+      return
+    }
+
+    if (!isCorrectNetwork) {
+      toast.error('Wrong network', {
+        description: `Please switch to ${mantleTestnet.name}`,
+      })
+      return
+    }
+
+    if (shares <= 0) {
+      toast.error('Invalid amount', {
+        description: 'Please enter a valid number of shares',
+      })
+      return
+    }
+
+    try {
+      await invest(cost)
+    } catch (err) {
+      // Error handling is done in useInvest hook
+      console.error('Invest error:', err)
+    }
   }
 
   return (
@@ -81,30 +131,71 @@ export default function AddPositionModal({
 
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Available Cash</span>
-            <span
-              className={canAfford ? 'text-foreground' : 'text-destructive'}
-            >
+            <span className="text-foreground">
               {formatCurrency(portfolio.cashUsd)}
             </span>
           </div>
 
-          {!canAfford && (
+          {!isConnected && (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4" />
-              <span>Insufficient funds</span>
+              <span>Please connect your wallet to invest</span>
+            </div>
+          )}
+
+          {isConnected && !isCorrectNetwork && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>Please switch to {mantleTestnet.name}</span>
+            </div>
+          )}
+
+          {status === 'pending' && (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Transaction pending...</span>
+              {hash && (
+                <a
+                  href={`https://sepolia.mantlescan.xyz/tx/${hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  View on Explorer
+                </a>
+              )}
+            </div>
+          )}
+
+          {status === 'error' && error && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error.message || 'Transaction failed'}</span>
             </div>
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!canAfford}
+              disabled={!canInvest || shares <= 0}
               className="flex-1"
             >
-              Confirm
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Invest'
+              )}
             </Button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useState, useEffect, ReactNode } from 'react'
+import { useAccount } from 'wagmi'
 
 import { Portfolio, initialPortfolio } from '../mockData'
 
@@ -21,6 +22,7 @@ export const PortfolioContext = createContext<PortfolioContextType | undefined>(
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const { address } = useAccount()
   const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio)
   const [loading, setLoading] = useState(true)
   const [apiMetrics, setApiMetrics] = useState<{
@@ -30,47 +32,55 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
     allocation: Record<string, number>
   } | null>(null)
 
-  useEffect(() => {
-    const fetchPortfolio = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/portfolio')
-        if (!response.ok) {
-          console.error('Failed to fetch portfolio')
-          return
-        }
-        const data = await response.json()
-        // Transform API response to Portfolio format
-        const holdings: Record<string, number> = {}
-        data.portfolio.positions.forEach((pos: any) => {
-          holdings[pos.assetId] = pos.shares
-        })
-
-        // Extract cash from allocation or use 0 if not found
-        const cashUsd = data.portfolio.allocation?.Cash || 0
-
-        setPortfolio({
-          holdings,
-          cashUsd,
-          lastUpdated: new Date().toISOString(),
-        })
-
-        // Store API-provided metrics
-        setApiMetrics({
-          totalAUM: data.portfolio.totalAUM,
-          weightedAPY: data.portfolio.weightedAPY,
-          riskScore: data.portfolio.riskScore,
-          allocation: data.portfolio.allocation,
-        })
-      } catch (err) {
-        console.error('Error fetching portfolio:', err)
-      } finally {
-        setLoading(false)
+  const fetchPortfolio = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/portfolio')
+      if (!response.ok) {
+        console.error('Failed to fetch portfolio')
+        return
       }
-    }
+      const data = await response.json()
+      // Transform API response to Portfolio format
+      const holdings: Record<string, number> = {}
+      data.portfolio.positions.forEach((pos: any) => {
+        holdings[pos.assetId] = pos.shares
+      })
 
+      // Extract cash from allocation or use 0 if not found
+      const cashUsd = data.portfolio.allocation?.Cash || 0
+
+      setPortfolio({
+        holdings,
+        cashUsd,
+        lastUpdated: new Date().toISOString(),
+      })
+
+      // Store API-provided metrics
+      setApiMetrics({
+        totalAUM: data.portfolio.totalAUM,
+        weightedAPY: data.portfolio.weightedAPY,
+        riskScore: data.portfolio.riskScore,
+        allocation: data.portfolio.allocation,
+      })
+    } catch (err) {
+      console.error('Error fetching portfolio:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch portfolio on mount
+  useEffect(() => {
     fetchPortfolio()
   }, [])
+
+  // Refresh portfolio when wallet address changes
+  useEffect(() => {
+    if (address) {
+      fetchPortfolio()
+    }
+  }, [address])
 
   const addPosition = (assetId: string, shares: number) => {
     // TODO: Update database via API endpoint

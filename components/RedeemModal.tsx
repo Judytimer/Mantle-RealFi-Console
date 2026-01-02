@@ -1,13 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertCircle, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertCircle, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAccount, useChainId } from 'wagmi'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import usePortfolio from '@/lib/hooks/usePortfolio'
+import { useWallet } from '@/lib/hooks/useWallet'
+import { useRedeem } from '@/lib/hooks/useContractWrite'
+import { useTokenBalance } from '@/lib/hooks/useContract'
 import { type Asset, formatCurrency } from '@/lib/mockData'
+import { mantleTestnet } from '@/lib/config/networks'
 
 interface RedeemModalProps {
   asset: Asset
@@ -16,20 +21,85 @@ interface RedeemModalProps {
 
 export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
   const { portfolio, redeemPosition } = usePortfolio()
-  const currentShares = portfolio.holdings[asset.id] || 0
+  const { isConnected, connect } = useWallet()
+  const { address } = useAccount()
+  const chainId = useChainId()
   const [shares, setShares] = useState(1)
 
-  const value = shares * asset.price
-  const canRedeem = shares <= currentShares && shares > 0
+  // Read token balance from contract
+  const { balance: contractBalance, isLoading: isLoadingBalance } =
+    useTokenBalance(
+      {
+        id: asset.id,
+        name: asset.name,
+        tokenAddress: asset.tokenAddress,
+      },
+      address,
+    )
 
-  const handleSubmit = () => {
-    if (!canRedeem) return
+  // Use contract balance if available, otherwise fall back to portfolio holdings
+  const currentShares =
+    contractBalance > 0 ? contractBalance : portfolio.holdings[asset.id] || 0
 
-    redeemPosition(asset.id, shares)
-    toast.success('Position Redeemed', {
-      description: `Redeemed ${shares} units of ${asset.name}`,
+  const { redeem, reset, status, hash, error, isPending, isSuccess } =
+    useRedeem({
+      id: asset.id,
+      name: asset.name,
+      tokenAddress: asset.tokenAddress,
     })
-    onClose()
+
+  const value = shares * asset.price
+  const isCorrectNetwork = chainId === mantleTestnet.id
+  const canRedeem =
+    isConnected &&
+    isCorrectNetwork &&
+    shares <= currentShares &&
+    shares > 0 &&
+    !isPending
+
+  // Close modal on successful transaction
+  useEffect(() => {
+    if (isSuccess) {
+      // Refresh portfolio after a short delay to allow blockchain state to update
+      setTimeout(() => {
+        window.location.reload() // Simple refresh for now, can be optimized later
+      }, 2000)
+      onClose()
+    }
+  }, [isSuccess, onClose])
+
+  const handleSubmit = async () => {
+    if (!isConnected) {
+      toast.error('Wallet not connected', {
+        description: 'Please connect your wallet to redeem',
+        action: {
+          label: 'Connect',
+          onClick: () => connect(),
+        },
+      })
+      return
+    }
+
+    if (!isCorrectNetwork) {
+      toast.error('Wrong network', {
+        description: `Please switch to ${mantleTestnet.name}`,
+      })
+      return
+    }
+
+    if (shares <= 0 || shares > currentShares) {
+      toast.error('Invalid amount', {
+        description: 'Please enter a valid number of shares to redeem',
+      })
+      return
+    }
+
+    try {
+      await redeem(shares)
+    } catch (err) {
+      // Error handling is done in useRedeem hook
+      console.error('Redeem error:', err)
+    }
   }
 
   return (
@@ -57,7 +127,13 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
 
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Your Position</span>
-            <span>{currentShares} units</span>
+            <span>
+              {isLoadingBalance ? (
+                <Loader2 className="w-4 h-4 animate-spin inline" />
+              ) : (
+                `${currentShares.toFixed(4)} units`
+              )}
+            </span>
           </div>
 
           <div className="space-y-2">
@@ -91,15 +167,58 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
             </span>
           </div>
 
-          {!canRedeem && shares > currentShares && (
+          {!isConnected && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>Please connect your wallet to redeem</span>
+            </div>
+          )}
+
+          {isConnected && !isCorrectNetwork && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>Please switch to {mantleTestnet.name}</span>
+            </div>
+          )}
+
+          {shares > currentShares && (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="w-4 h-4" />
               <span>Cannot exceed current position</span>
             </div>
           )}
 
+          {status === 'pending' && (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Transaction pending...</span>
+              {hash && (
+                <a
+                  href={`https://sepolia.mantlescan.xyz/tx/${hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  View on Explorer
+                </a>
+              )}
+            </div>
+          )}
+
+          {status === 'error' && error && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error.message || 'Transaction failed'}</span>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button
@@ -107,7 +226,14 @@ export default function RedeemModal({ asset, onClose }: RedeemModalProps) {
               disabled={!canRedeem}
               className="flex-1"
             >
-              Confirm Redemption
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Redemption'
+              )}
             </Button>
           </div>
         </div>

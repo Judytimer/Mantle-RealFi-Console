@@ -35,14 +35,14 @@ export default function RootLayout({
       <body
         className={`${font.variable} antialiased w-screen h-screen flex flex-col dark`}
       >
-        <PortfolioProvider>
-          <WalletProvider>
+        <WalletProvider>
+          <PortfolioProvider>
             <CopilotProvider>
               <Header />
               <main className="flex-1">{children}</main>
             </CopilotProvider>
-          </WalletProvider>
-        </PortfolioProvider>
+          </PortfolioProvider>
+        </WalletProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>
