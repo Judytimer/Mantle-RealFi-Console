@@ -1,11 +1,15 @@
 'use client'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { Wallet, ChevronDown, ExternalLink, Network } from 'lucide-react'
-import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@/lib/hooks/useWallet'
-import { getExplorerUrl, getNetworkName } from '@/lib/config/networks'
+import {
+  getExplorerUrl,
+  getNetworkName,
+  defaultChain,
+} from '@/lib/config/networks'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +29,25 @@ export default function TopBar() {
     addNetwork,
   } = useWallet()
   const [isSwitching, setIsSwitching] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Ensure consistent values during hydration
+  const effectiveChainId = chainId ?? defaultChain.id
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  const isWrongNetwork = isConnected && chainId !== 5000 && chainId !== 5003
+  // Only check wrong network after mount to prevent hydration mismatch
+  const isWrongNetwork =
+    isMounted &&
+    isConnected &&
+    effectiveChainId !== 5000 &&
+    effectiveChainId !== 5003
 
   const handleSwitchNetwork = async (targetChainId: number) => {
     setIsSwitching(true)
@@ -83,14 +100,14 @@ export default function TopBar() {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full cursor-pointer hover:bg-secondary/80 transition-colors">
               <span
-                className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-muted-foreground'}`}
+                className={`w-2 h-2 rounded-full ${isMounted && isConnected ? 'bg-green-400' : 'bg-muted-foreground'}`}
               />
               <span className="text-muted-foreground">
-                {getNetworkName(chainId)}
+                {getNetworkName(effectiveChainId)}
               </span>
-              {isConnected && (
+              {isMounted && isConnected && (
                 <span className="text-muted-foreground/60 text-xs">
-                  #{chainId}
+                  #{effectiveChainId}
                 </span>
               )}
               <ChevronDown className="w-3 h-3 text-muted-foreground" />
@@ -99,19 +116,23 @@ export default function TopBar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem
               onClick={() => handleSwitchNetwork(5000)}
-              disabled={chainId === 5000 || isSwitching}
+              disabled={effectiveChainId === 5000 || isSwitching}
             >
               <Network className="w-4 h-4 mr-2" />
               Mantle Mainnet
-              {chainId === 5000 && <span className="ml-auto text-xs">✓</span>}
+              {effectiveChainId === 5000 && (
+                <span className="ml-auto text-xs">✓</span>
+              )}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleSwitchNetwork(5003)}
-              disabled={chainId === 5003 || isSwitching}
+              disabled={effectiveChainId === 5003 || isSwitching}
             >
               <Network className="w-4 h-4 mr-2" />
               Mantle Testnet
-              {chainId === 5003 && <span className="ml-auto text-xs">✓</span>}
+              {effectiveChainId === 5003 && (
+                <span className="ml-auto text-xs">✓</span>
+              )}
             </DropdownMenuItem>
             {isWrongNetwork && (
               <>
@@ -138,7 +159,7 @@ export default function TopBar() {
 
       {/* Wallet */}
       <div>
-        {isConnected ? (
+        {isMounted && isConnected ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -155,7 +176,7 @@ export default function TopBar() {
               <DropdownMenuItem
                 onClick={() =>
                   window.open(
-                    getExplorerUrl(chainId, address || undefined),
+                    getExplorerUrl(effectiveChainId, address || undefined),
                     '_blank',
                   )
                 }
