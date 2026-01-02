@@ -34,29 +34,29 @@ export default function useAssetsTable() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchAssets = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/assets')
-        if (!response.ok) {
-          console.error('Failed to fetch assets')
-          return
-        }
-        const data = await response.json()
-        // Map database type format (real_estate) to frontend format (real-estate)
-        const mappedAssets = data.assets.map((asset: any) => ({
-          ...asset,
-          type: asset.type === 'real_estate' ? 'real-estate' : asset.type,
-        }))
-        setAssets(mappedAssets)
-      } catch (err) {
-        console.error('Error fetching assets:', err)
-      } finally {
-        setLoading(false)
+  const fetchAssets = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/assets')
+      if (!response.ok) {
+        console.error('Failed to fetch assets')
+        return
       }
+      const data = await response.json()
+      // Map database type format (real_estate) to frontend format (real-estate)
+      const mappedAssets = data.assets.map((asset: any) => ({
+        ...asset,
+        type: asset.type === 'real_estate' ? 'real-estate' : asset.type,
+      }))
+      setAssets(mappedAssets)
+    } catch (err) {
+      console.error('Error fetching assets:', err)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchAssets()
   }, [])
 
@@ -177,5 +177,6 @@ export default function useAssetsTable() {
     sortedAssets,
     getRiskBadgeClass,
     getStatusBadgeClass,
+    refreshAssets: fetchAssets,
   }
 }

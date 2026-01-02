@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import {
   ArrowDownToLine,
   ArrowUpDown,
@@ -9,11 +10,11 @@ import {
   Search,
   PlusCircle,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import useAssetsTable from './service'
 import AddPositionModal from '@/components/AddPositionModal'
 import RedeemModal from '@/components/RedeemModal'
+import AddAssetModal from '@/components/AddAssetModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -74,7 +75,9 @@ export default function AssetsTable() {
     sortedAssets,
     getRiskBadgeClass,
     getStatusBadgeClass,
+    refreshAssets,
   } = useAssetsTable()
+  const [showAddAssetModal, setShowAddAssetModal] = useState(false)
 
   const SortHeader = ({
     field,
@@ -105,11 +108,7 @@ export default function AssetsTable() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              toast.info('Add Asset', {
-                description: 'Asset creation functionality coming soon',
-              })
-            }}
+            onClick={() => setShowAddAssetModal(true)}
             className="h-9"
           >
             <PlusCircle className="w-4 h-4 mr-2" />
@@ -414,6 +413,16 @@ export default function AssetsTable() {
           onClose={() => {
             setSelectedAsset(null)
             setModalType(null)
+          }}
+        />
+      )}
+
+      {showAddAssetModal && (
+        <AddAssetModal
+          onClose={() => setShowAddAssetModal(false)}
+          onSuccess={() => {
+            refreshAssets()
+            setShowAddAssetModal(false)
           }}
         />
       )}
