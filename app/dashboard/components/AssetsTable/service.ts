@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 import usePortfolio from '@/lib/hooks/usePortfolio'
 import {
-  assets,
   getRiskLevel,
   getAssetTypeLabel,
   type Asset,
@@ -32,6 +31,34 @@ export default function useAssetsTable() {
   ])
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [modalType, setModalType] = useState<'add' | 'redeem' | null>(null)
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/assets')
+        if (!response.ok) {
+          console.error('Failed to fetch assets')
+          return
+        }
+        const data = await response.json()
+        // Map database type format (real_estate) to frontend format (real-estate)
+        const mappedAssets = data.assets.map((asset: any) => ({
+          ...asset,
+          type: asset.type === 'real_estate' ? 'real-estate' : asset.type,
+        }))
+        setAssets(mappedAssets)
+      } catch (err) {
+        console.error('Error fetching assets:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAssets()
+  }, [])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -135,6 +162,7 @@ export default function useAssetsTable() {
     confidenceRange,
     selectedAsset,
     modalType,
+    loading,
     setSearch,
     handleSort,
     setTypeFilter,

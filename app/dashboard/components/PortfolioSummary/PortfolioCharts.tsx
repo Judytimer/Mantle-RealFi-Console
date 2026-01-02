@@ -115,8 +115,11 @@ export default function PortfolioCharts({
                   borderRadius: '8px',
                   fontSize: '12px',
                 }}
-                formatter={(value: number, name: string) => [
-                  `${(value * 100).toFixed(2)}%`,
+                formatter={(
+                  value: number | undefined,
+                  name: string | undefined,
+                ) => [
+                  value ? `${(value * 100).toFixed(2)}%` : '0%',
                   name === 'realized' ? 'Realized' : 'Projected',
                 ]}
               />

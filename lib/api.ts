@@ -1,9 +1,26 @@
-import { assets, initialPortfolio, getAssetTypeLabel } from '@/lib/mockData'
+import { prisma } from '@/lib/db'
+
+// Define AssetType locally to match Prisma enum
+type AssetType = 'treasury' | 'real_estate' | 'credit' | 'cash'
+
+// Helper to get asset type label
+export const getAssetTypeLabel = (type: AssetType): string => {
+  const labels: Record<AssetType, string> = {
+    treasury: 'Treasury',
+    real_estate: 'Real Estate',
+    credit: 'Credit',
+    cash: 'Cash',
+  }
+  return labels[type]
+}
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const fetchAssets = async () => {
   await delay(300)
+  const assets = await prisma.asset.findMany({
+    orderBy: { createdAt: 'desc' },
+  })
   return {
     assets,
     total: assets.length,
@@ -14,52 +31,143 @@ export const fetchAssets = async () => {
 
 export const fetchAssetById = async (id: string) => {
   await delay(200)
-  return assets.find((asset) => asset.id === id) ?? null
+  const asset = await prisma.asset.findUnique({
+    where: { id },
+    include: {
+      yieldBreakdowns: true,
+      confidenceFactors: true,
+      realWorldInfo: true,
+      realWorldKeyFacts: true,
+      realWorldVerifications: true,
+      cashFlowSources: true,
+      events: {
+        orderBy: { eventDate: 'desc' },
+        take: 10,
+      },
+      yieldHistory: {
+        orderBy: { dayIndex: 'asc' },
+      },
+      navHistory: {
+        orderBy: { dayIndex: 'asc' },
+      },
+    },
+  })
+
+  if (!asset) return null
+
+  // Transform to match mock data structure
+  return {
+    ...asset,
+    apy: Number(asset.apy),
+    aumUsd: Number(asset.aumUsd),
+    price: Number(asset.price),
+    yieldBreakdown: asset.yieldBreakdowns.map((yb: any) => ({
+      label: yb.label,
+      percentage: Number(yb.percentage),
+      description: yb.description,
+      impact: yb.impact as 'positive' | 'negative' | 'neutral',
+    })),
+    confidenceFactors: asset.confidenceFactors.map((cf: any) => ({
+      label: cf.label,
+      score: cf.score,
+      description: cf.description,
+    })),
+    realWorld: asset.realWorldInfo
+      ? {
+          title: asset.realWorldInfo.title,
+          summary: asset.realWorldInfo.summary ?? '',
+          keyFacts: asset.realWorldKeyFacts.map((kf: any) => ({
+            label: kf.label,
+            value: kf.value,
+          })),
+          verification: asset.realWorldVerifications.map((v: any) => v.item),
+        }
+      : null,
+    cashFlowSources: asset.cashFlowSources.map((cfs: any) => ({
+      source: cfs.source,
+      frequency: cfs.frequency,
+      description: cfs.description,
+    })),
+    events: asset.events.map((e: any) => ({
+      type: e.type,
+      amount: Number(e.amount),
+      date: e.eventDate.toISOString().split('T')[0],
+      txHash: e.txHash ?? '',
+    })),
+    yieldHistory: asset.yieldHistory.map((yh: any) => Number(yh.yieldValue)),
+    navHistory: asset.navHistory.map((nh: any) => Number(nh.navValue)),
+    nextPayoutDate: asset.nextPayoutDate.toISOString().split('T')[0],
+  }
 }
 
 export const fetchPortfolio = async () => {
   await delay(250)
-  const { holdings, cashUsd } = initialPortfolio
-  const positions = Object.entries(holdings)
-    .map(([assetId, shares]) => {
-      const asset = assets.find((item) => item.id === assetId)
-      if (!asset) return null
-      const value = shares * asset.price
+
+  // Hardcoded demo user ID for now
+  const userId = '00000000-0000-0000-0000-000000000001'
+
+  // Fetch portfolio and holdings with asset details
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { userId },
+  })
+
+  const holdings = await prisma.portfolioHolding.findMany({
+    where: { userId },
+    include: {
+      asset: true,
+    },
+  })
+
+  const cashUsd = portfolio ? Number(portfolio.cashUsd) : 0
+
+  // Calculate positions with values
+  const positions = holdings
+    .filter((h: any) => Number(h.shares) > 0)
+    .map((holding: any) => {
+      const shares = Number(holding.shares)
+      const price = Number(holding.asset.price)
+      const value = shares * price
       return {
-        assetId,
+        assetId: holding.assetId,
         shares,
         value,
-        apy: asset.apy,
-        riskScore: asset.riskScore,
-        type: asset.type,
+        apy: Number(holding.asset.apy),
+        riskScore: holding.asset.riskScore,
+        type: holding.asset.type as AssetType,
       }
     })
-    .filter(Boolean)
 
+  // Calculate total AUM
   const totalAUM = positions.reduce(
-    (sum, position) => sum + (position?.value ?? 0),
+    (sum: number, position: any) => sum + position.value,
     cashUsd,
   )
+
+  // Calculate weighted APY (excluding cash)
+  const investedValue = positions.reduce(
+    (sum: number, position: any) => sum + position.value,
+    0,
+  )
   const weightedAPY =
-    totalAUM === 0
+    investedValue === 0
       ? 0
-      : positions.reduce((sum, position) => {
-          if (!position) return sum
-          return sum + (position.value / totalAUM) * position.apy
+      : positions.reduce((sum: number, position: any) => {
+          return sum + (position.value / investedValue) * position.apy
         }, 0)
+
+  // Calculate weighted risk score
   const riskScore =
     totalAUM === 0
       ? 0
       : Math.round(
-          positions.reduce((sum, position) => {
-            if (!position) return sum
+          positions.reduce((sum: number, position: any) => {
             return sum + (position.value / totalAUM) * position.riskScore
           }, 0),
         )
 
+  // Calculate allocation by asset type
   const allocation = positions.reduce<Record<string, number>>(
-    (map, position) => {
-      if (!position) return map
+    (map: Record<string, number>, position: any) => {
       const label = getAssetTypeLabel(position.type)
       map[label] = (map[label] ?? 0) + position.value
       return map
@@ -69,11 +177,11 @@ export const fetchPortfolio = async () => {
 
   return {
     portfolio: {
-      userId: 'demo-user',
+      userId,
       totalAUM,
       weightedAPY: Number(weightedAPY.toFixed(2)),
       riskScore,
-      positions: positions.filter(Boolean),
+      positions,
       allocation,
     },
   }
@@ -187,6 +295,9 @@ export const postCopilotMessage = async (content: string) => {
 
 export const postTransaction = async () => {
   await delay(500)
+
+  // For now, return a mock transaction since we don't have a transactions table
+  // This would need to be updated once the transactions table is created
   return {
     transaction: {
       id: `tx-${Date.now()}`,

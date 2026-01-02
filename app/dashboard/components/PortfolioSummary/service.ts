@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import usePortfolio from '@/lib/hooks/usePortfolio'
-import { getRiskLevel, assets } from '@/lib/mockData'
+import { getRiskLevel, type Asset } from '@/lib/mockData'
 
 export default function usePortfolioSummary() {
   const {
@@ -9,6 +10,27 @@ export default function usePortfolioSummary() {
     getAllocation,
     portfolio,
   } = usePortfolio()
+  const [assets, setAssets] = useState<Asset[]>([])
+
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const response = await fetch('/api/assets')
+        if (!response.ok) return
+        const data = await response.json()
+        // Map database type format (real_estate) to frontend format (real-estate)
+        const mappedAssets = data.assets.map((asset: any) => ({
+          ...asset,
+          type: asset.type === 'real_estate' ? 'real-estate' : asset.type,
+        }))
+        setAssets(mappedAssets)
+      } catch (err) {
+        console.error('Error fetching assets:', err)
+      }
+    }
+
+    fetchAssets()
+  }, [])
 
   const totalAUM = getTotalAUM()
   const weightedAPY = getWeightedAPY()

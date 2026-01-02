@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   AlertTriangle,
@@ -34,12 +34,12 @@ import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import usePortfolio from '@/lib/hooks/usePortfolio'
 import {
-  assets,
   formatCurrency,
   formatDuration,
   getAssetTypeColor,
   getAssetTypeLabel,
   getRiskLevel,
+  type Asset,
 } from '@/lib/mockData'
 
 export default function AssetDetailPage() {
@@ -50,14 +50,58 @@ export default function AssetDetailPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
   const [showRealWorld, setShowRealWorld] = useState(false)
+  const [asset, setAsset] = useState<Asset | null>(null)
+  const [userPosition, setUserPosition] = useState({ shares: 0, amount: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const asset = assets.find((a) => a.id === id)
+  useEffect(() => {
+    if (!id) return
 
-  if (!asset) {
+    const fetchAsset = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/assets/${id}`)
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError('Asset not found')
+          } else {
+            setError('Failed to load asset')
+          }
+          setLoading(false)
+          return
+        }
+        const data = await response.json()
+        setAsset(data.asset)
+        setUserPosition(data.userPosition)
+      } catch (err) {
+        setError('Failed to load asset')
+        console.error('Error fetching asset:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAsset()
+  }, [id])
+
+  if (loading) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-4">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-2">Asset Not Found</h1>
+          <h1 className="text-2xl font-semibold mb-2">Loading...</h1>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !asset) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-2">
+            {error || 'Asset Not Found'}
+          </h1>
           <Button onClick={() => router.push('/dashboard')}>
             Back to Dashboard
           </Button>
@@ -66,8 +110,8 @@ export default function AssetDetailPage() {
     )
   }
 
-  const shares = portfolio.holdings[asset.id] || 0
-  const positionValue = shares * asset.price
+  const shares = userPosition.shares
+  const positionValue = userPosition.amount
   const riskLevel = getRiskLevel(asset.riskScore)
 
   const yieldChartData = asset.yieldHistory.map((value, index) => ({
@@ -343,8 +387,8 @@ export default function AssetDetailPage() {
                       borderRadius: '8px',
                       fontSize: '12px',
                     }}
-                    formatter={(value: number) => [
-                      `${value.toFixed(2)}%`,
+                    formatter={(value: number | undefined) => [
+                      value ? `${value.toFixed(2)}%` : '0%',
                       'Yield',
                     ]}
                   />
@@ -374,8 +418,8 @@ export default function AssetDetailPage() {
                       borderRadius: '8px',
                       fontSize: '12px',
                     }}
-                    formatter={(value: number) => [
-                      formatCurrency(value),
+                    formatter={(value: number | undefined) => [
+                      value ? formatCurrency(value) : '$0',
                       'NAV',
                     ]}
                   />
