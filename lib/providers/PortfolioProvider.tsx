@@ -1,16 +1,20 @@
 'use client'
 import { createContext, useState, useEffect, ReactNode } from 'react'
+import { useAccount } from 'wagmi'
 
-import { Portfolio, initialPortfolio, assets } from '../mockData'
+import { Portfolio, initialPortfolio } from '../mockData'
 
 interface PortfolioContextType {
   portfolio: Portfolio
   addPosition: (assetId: string, shares: number) => void
   redeemPosition: (assetId: string, shares: number) => void
+  refreshPortfolio: () => Promise<void>
   getTotalAUM: () => number
   getWeightedAPY: () => number
   getRiskScore: () => number
   getAllocation: () => { type: string; value: number; percentage: number }[]
+  loading: boolean
+  isRefreshing: boolean
 }
 
 export const PortfolioContext = createContext<PortfolioContextType | undefined>(
@@ -20,42 +24,124 @@ export const PortfolioContext = createContext<PortfolioContextType | undefined>(
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [portfolio, setPortfolio] = useState<Portfolio>(() => {
-    if (typeof window === 'undefined') return initialPortfolio
-    const saved = localStorage.getItem('portfolio')
-    return saved ? JSON.parse(saved) : initialPortfolio
-  })
+  const { address } = useAccount()
+  const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio)
+  const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [apiMetrics, setApiMetrics] = useState<{
+    totalAUM: number
+    weightedAPY: number
+    riskScore: number
+    allocation: Record<string, number>
+  } | null>(null)
 
+  const fetchPortfolio = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setIsRefreshing(true)
+      } else {
+        setLoading(true)
+      }
+      const response = await fetch('/api/portfolio')
+      if (!response.ok) {
+        console.error('Failed to fetch portfolio')
+        return
+      }
+      const data = await response.json()
+      // Transform API response to Portfolio format
+      const holdings: Record<string, number> = {}
+      data.portfolio.positions.forEach((pos: any) => {
+        holdings[pos.assetId] = pos.shares
+      })
+
+      // Extract cash from allocation or use 0 if not found
+      const cashUsd = data.portfolio.allocation?.Cash || 0
+
+      setPortfolio({
+        holdings,
+        cashUsd,
+        lastUpdated: new Date().toISOString(),
+      })
+
+      // Store API-provided metrics
+      setApiMetrics({
+        totalAUM: data.portfolio.totalAUM,
+        weightedAPY: data.portfolio.weightedAPY,
+        riskScore: data.portfolio.riskScore,
+        allocation: data.portfolio.allocation,
+      })
+    } catch (err) {
+      console.error('Error fetching portfolio:', err)
+      throw err // Re-throw so caller can handle
+    } finally {
+      setLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  const refreshPortfolio = async () => {
+    try {
+      await fetchPortfolio(true)
+    } catch (err) {
+      console.error('Error refreshing portfolio:', err)
+      // Don't throw - allow user to continue
+    }
+  }
+
+  // Fetch portfolio on mount
   useEffect(() => {
-    localStorage.setItem('portfolio', JSON.stringify(portfolio))
-  }, [portfolio])
+    fetchPortfolio()
+  }, [])
+
+  // Refresh portfolio when wallet address changes
+  useEffect(() => {
+    if (address) {
+      fetchPortfolio()
+    }
+  }, [address])
 
   const addPosition = (assetId: string, shares: number) => {
-    const asset = assets.find((a) => a.id === assetId)
-    if (!asset) return
-
-    const cost = shares * asset.price
-    if (cost > portfolio.cashUsd) return
-
+    // TODO: Update database via API endpoint
+    // For now, update local state and refetch
     setPortfolio((prev) => ({
       ...prev,
       holdings: {
         ...prev.holdings,
         [assetId]: (prev.holdings[assetId] || 0) + shares,
       },
-      cashUsd: prev.cashUsd - cost,
       lastUpdated: new Date().toISOString(),
     }))
+    // Refetch portfolio to sync with database
+    setTimeout(() => {
+      fetch('/api/portfolio')
+        .then((res) => res.json())
+        .then((data) => {
+          const holdings: Record<string, number> = {}
+          data.portfolio.positions.forEach((pos: any) => {
+            holdings[pos.assetId] = pos.shares
+          })
+          const cashUsd = data.portfolio.allocation?.Cash || 0
+          setPortfolio({
+            holdings,
+            cashUsd,
+            lastUpdated: new Date().toISOString(),
+          })
+          setApiMetrics({
+            totalAUM: data.portfolio.totalAUM,
+            weightedAPY: data.portfolio.weightedAPY,
+            riskScore: data.portfolio.riskScore,
+            allocation: data.portfolio.allocation,
+          })
+        })
+        .catch(console.error)
+    }, 100)
   }
 
   const redeemPosition = (assetId: string, shares: number) => {
-    const asset = assets.find((a) => a.id === assetId)
-    if (!asset) return
-
+    // TODO: Update database via API endpoint
+    // For now, update local state and refetch
     const currentShares = portfolio.holdings[assetId] || 0
     if (shares > currentShares) return
-
-    const value = shares * asset.price
 
     setPortfolio((prev) => ({
       ...prev,
@@ -63,79 +149,52 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
         ...prev.holdings,
         [assetId]: currentShares - shares,
       },
-      cashUsd: prev.cashUsd + value,
       lastUpdated: new Date().toISOString(),
     }))
+    // Refetch portfolio to sync with database
+    setTimeout(() => {
+      fetch('/api/portfolio')
+        .then((res) => res.json())
+        .then((data) => {
+          const holdings: Record<string, number> = {}
+          data.portfolio.positions.forEach((pos: any) => {
+            holdings[pos.assetId] = pos.shares
+          })
+          const cashUsd = data.portfolio.allocation?.Cash || 0
+          setPortfolio({
+            holdings,
+            cashUsd,
+            lastUpdated: new Date().toISOString(),
+          })
+          setApiMetrics({
+            totalAUM: data.portfolio.totalAUM,
+            weightedAPY: data.portfolio.weightedAPY,
+            riskScore: data.portfolio.riskScore,
+            allocation: data.portfolio.allocation,
+          })
+        })
+        .catch(console.error)
+    }, 100)
   }
 
   const getTotalAUM = () => {
-    let total = portfolio.cashUsd
-    Object.entries(portfolio.holdings).forEach(([assetId, shares]) => {
-      const asset = assets.find((a) => a.id === assetId)
-      if (asset) {
-        total += shares * asset.price
-      }
-    })
-    return total
+    return apiMetrics?.totalAUM || 0
   }
 
   const getWeightedAPY = () => {
-    const totalAUM = getTotalAUM()
-    if (totalAUM === 0) return 0
-
-    let weightedSum = 0
-    Object.entries(portfolio.holdings).forEach(([assetId, shares]) => {
-      const asset = assets.find((a) => a.id === assetId)
-      if (asset) {
-        const value = shares * asset.price
-        weightedSum += (value / totalAUM) * asset.apy
-      }
-    })
-    return weightedSum
+    return apiMetrics?.weightedAPY || 0
   }
 
   const getRiskScore = () => {
-    const totalAUM = getTotalAUM()
-    if (totalAUM === 0) return 0
-
-    let weightedSum = 0
-    Object.entries(portfolio.holdings).forEach(([assetId, shares]) => {
-      const asset = assets.find((a) => a.id === assetId)
-      if (asset) {
-        const value = shares * asset.price
-        weightedSum += (value / totalAUM) * asset.riskScore
-      }
-    })
-    return Math.round(weightedSum)
+    return apiMetrics?.riskScore || 0
   }
 
   const getAllocation = () => {
-    const totalAUM = getTotalAUM()
-    const allocationMap: Record<string, number> = {
-      'Real Estate': 0,
-      Bonds: 0,
-      Invoices: 0,
-      'Cash Flow': 0,
-      Cash: portfolio.cashUsd,
+    if (!apiMetrics?.allocation) {
+      return []
     }
-
-    Object.entries(portfolio.holdings).forEach(([assetId, shares]) => {
-      const asset = assets.find((a) => a.id === assetId)
-      if (asset) {
-        const value = shares * asset.price
-        const label =
-          asset.type === 'real-estate'
-            ? 'Real Estate'
-            : asset.type === 'bonds'
-              ? 'Bonds'
-              : asset.type === 'invoices'
-                ? 'Invoices'
-                : 'Cash Flow'
-        allocationMap[label] += value
-      }
-    })
-
-    return Object.entries(allocationMap)
+    const totalAUM = getTotalAUM()
+    return Object.entries(apiMetrics.allocation)
       .filter(([_, value]) => value > 0)
       .map(([type, value]) => ({
         type,
@@ -150,10 +209,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({
         portfolio,
         addPosition,
         redeemPosition,
+        refreshPortfolio,
         getTotalAUM,
         getWeightedAPY,
         getRiskScore,
         getAllocation,
+        loading,
+        isRefreshing,
       }}
     >
       {children}

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 
 import Header from '@/components/business/Header'
+import CopilotProvider from '@/lib/providers/CopilotProvider'
 import WalletProvider from '@/lib/providers/WalletProvider'
 import { PortfolioProvider } from '@/lib/providers/PortfolioProvider'
 
@@ -34,12 +35,14 @@ export default function RootLayout({
       <body
         className={`${font.variable} antialiased w-screen h-screen flex flex-col dark`}
       >
-        <PortfolioProvider>
-          <WalletProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
-          </WalletProvider>
-        </PortfolioProvider>
+        <WalletProvider>
+          <PortfolioProvider>
+            <CopilotProvider>
+              <Header />
+              <main className="flex-1">{children}</main>
+            </CopilotProvider>
+          </PortfolioProvider>
+        </WalletProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

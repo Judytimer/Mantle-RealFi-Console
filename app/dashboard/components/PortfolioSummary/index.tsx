@@ -1,17 +1,6 @@
 'use client'
 import { TrendingUp, Calendar, AlertTriangle, DollarSign } from 'lucide-react'
-import {
-  Pie,
-  Cell,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  LineChart,
-  ResponsiveContainer,
-} from 'recharts'
-
+import PortfolioCharts from './PortfolioCharts'
 import usePortfolioSummary from './service'
 import { formatCurrency } from '@/lib/mockData'
 
@@ -26,6 +15,7 @@ export default function PortfolioSummary() {
     allocation,
     getNextPayout,
     yieldCurve,
+    payoutEvents,
   } = usePortfolioSummary()
 
   return (
@@ -89,86 +79,12 @@ export default function PortfolioSummary() {
         </div>
       </div>
 
-      {/* Allocation Pie */}
-      <div className="metric-card">
-        <div className="metric-label mb-3">Allocation</div>
-        <div className="flex items-center gap-4">
-          <div className="w-24 h-24">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={allocation}
-                  dataKey="percentage"
-                  nameKey="type"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={25}
-                  outerRadius={40}
-                  strokeWidth={0}
-                >
-                  {allocation.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex-1 space-y-1.5">
-            {allocation.map((item, index) => (
-              <div
-                key={item.type}
-                className="flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  />
-                  <span className="text-muted-foreground">{item.type}</span>
-                </div>
-                <span className="font-medium">
-                  {item.percentage.toFixed(1)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Yield Curve */}
-      <div className="metric-card">
-        <div className="metric-label mb-3">30D Yield Trend</div>
-        <div className="h-24">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={yieldCurve}>
-              <XAxis dataKey="day" hide />
-              <YAxis hide domain={['dataMin - 0.005', 'dataMax + 0.005']} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-                formatter={(value?: number) => [
-                  `${(value ?? 0 * 100).toFixed(2)}%`,
-                  'Daily Yield',
-                ]}
-              />
-              <Line
-                type="monotone"
-                dataKey="yield"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <PortfolioCharts
+        allocation={allocation}
+        colors={COLORS}
+        yieldCurve={yieldCurve}
+        payoutEvents={payoutEvents}
+      />
     </div>
   )
 }
