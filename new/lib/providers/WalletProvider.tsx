@@ -197,6 +197,7 @@ export default function WalletProvider({
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           chains={[mantleMainnet, mantleTestnet]}
+          locale="en-US"
           theme={darkTheme({
             accentColor: '#38bdf8',
             accentColorForeground: '#0b1220',
