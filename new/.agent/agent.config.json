@@ -1,0 +1,33 @@
+{
+  "name": "mantle-realfi-console-analyzer",
+  "version": "1.0.0",
+  "description": "Codex agent configuration for Mantle RealFi Console project analysis",
+  "systemPrompt": ".agent/system.md",
+  "analysis": {
+    "focusAreas": [
+      "architecture",
+      "code-quality",
+      "functionality-gaps",
+      "integration-readiness",
+      "best-practices"
+    ],
+    "outputFormat": "markdown",
+    "includeCodeExamples": true,
+    "includeRecommendations": true
+  },
+  "project": {
+    "type": "nextjs",
+    "framework": "next.js-16",
+    "language": "typescript",
+    "packageManager": "pnpm"
+  },
+  "dependencies": {
+    "required": ["next", "react", "typescript"],
+    "missing": ["wagmi", "viem", "@prisma/client", "prisma"]
+  }
+}
+
+
+
+
+
