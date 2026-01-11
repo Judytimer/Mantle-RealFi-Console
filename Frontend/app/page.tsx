@@ -335,7 +335,7 @@ export default function MarketplacePage() {
                   <TableHead className="w-10"></TableHead>
                   <TableHead>
                     <button
-                      className="flex items-center gap-1 hover:text-slate-900"
+                      className="flex items-center gap-1 text-white hover:text-white/80"
                       onClick={() => handleSort('name')}
                     >
                       Asset{' '}
@@ -347,7 +347,7 @@ export default function MarketplacePage() {
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">
                     <button
-                      className="flex items-center gap-1 hover:text-slate-900 ml-auto"
+                      className="flex items-center gap-1 text-white hover:text-white/80 ml-auto"
                       onClick={() => handleSort('apy')}
                     >
                       APY{' '}
@@ -358,7 +358,7 @@ export default function MarketplacePage() {
                   </TableHead>
                   <TableHead className="text-right">
                     <button
-                      className="flex items-center gap-1 hover:text-slate-900 ml-auto"
+                      className="flex items-center gap-1 text-white hover:text-white/80 ml-auto"
                       onClick={() => handleSort('riskScore')}
                     >
                       Risk{' '}
@@ -369,7 +369,7 @@ export default function MarketplacePage() {
                   </TableHead>
                   <TableHead className="text-right">
                     <button
-                      className="flex items-center gap-1 hover:text-slate-900 ml-auto"
+                      className="flex items-center gap-1 text-white hover:text-white/80 ml-auto"
                       onClick={() => handleSort('aumUsd')}
                     >
                       AUM{' '}
@@ -380,7 +380,7 @@ export default function MarketplacePage() {
                   </TableHead>
                   <TableHead className="text-right">
                     <button
-                      className="flex items-center gap-1 hover:text-slate-900 ml-auto"
+                      className="flex items-center gap-1 text-white hover:text-white/80 ml-auto"
                       onClick={() => handleSort('price')}
                     >
                       Price{' '}

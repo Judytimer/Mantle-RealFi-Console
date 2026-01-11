@@ -17,7 +17,8 @@ describe("RWAToken", function () {
       "Treasury",
       520, // 5.20% APY
       15, // Risk score
-      180 * 24 * 60 * 60 // 6 months duration
+      180 * 24 * 60 * 60, // 6 months duration
+      ethers.parseEther("1000000") // Initial AUM
     );
     await rwaToken.waitForDeployment();
   });

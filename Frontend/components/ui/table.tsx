@@ -27,7 +27,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
         // 玻璃拟态表头
         'bg-gradient-to-r from-[hsl(225_30%_12%/0.9)] to-[hsl(225_30%_10%/0.8)]',
         'backdrop-blur-sm',
-        'text-muted-foreground',
+        'text-white',
         '[&_tr]:border-b [&_tr]:border-border/40',
         className,
       )}
@@ -83,7 +83,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
       className={cn(
         'h-12 px-4 text-left align-middle',
         'text-xs font-semibold uppercase tracking-[0.15em]',
-        'text-muted-foreground',
+        'text-white',
         'whitespace-nowrap',
         '[&:has([role=checkbox])]:pr-0',
         className,

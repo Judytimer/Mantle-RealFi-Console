@@ -12,11 +12,18 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@types/node": "^20.10.0",
+    "chai": "^4.3.10",
     "dotenv": "^16.3.1",
     "hardhat": "^2.19.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "keccak",
+      "secp256k1"
+    ]
   }
 }

@@ -113,8 +113,8 @@
     );
     --gradient-card: linear-gradient(
       135deg,
-      hsl(220 20% 12%) 0%,
-      hsl(220 20% 8%) 100%
+      hsl(220 20% 98%) 0%,
+      hsl(220 20% 95%) 100%
     );
     --gradient-glow: radial-gradient(
       circle at center,
@@ -232,7 +232,7 @@
         ellipse 400px 300px at 85% 85%,
         hsl(175 80% 50% / 0.1),
         transparent
-      ), linear-gradient(180deg, hsl(220 20% 12%), hsl(220 20% 9%));
+      ), linear-gradient(180deg, hsl(220 20% 98%), hsl(220 20% 95%));
   }
 
   /* 六边形纹理 */
@@ -430,7 +430,7 @@
   }
 
   .data-table thead {
-    background: hsl(220 20% 12% / 0.8);
+    background: hsl(220 20% 96% / 0.8);
   }
 
   .data-table th {

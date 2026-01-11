@@ -19,7 +19,8 @@ describe("YieldDistributor", function () {
       "Treasury",
       520,
       15,
-      180 * 24 * 60 * 60
+      180 * 24 * 60 * 60,
+      ethers.parseEther("1000000")
     );
     await rwaToken.waitForDeployment();
 

@@ -23,7 +23,7 @@ const SelectTrigger = React.forwardRef<
       // 玻璃拟态背景
       'bg-[hsl(225_25%_12%/0.8)] backdrop-blur-sm',
       'border border-border/50',
-      'text-foreground',
+      'text-white',
       'shadow-sm shadow-black/10',
       // 过渡动画
       'transition-all duration-200',
@@ -32,7 +32,7 @@ const SelectTrigger = React.forwardRef<
       'focus:ring-2 focus:ring-primary/20',
       'focus:shadow-[0_0_20px_-5px_hsl(175_85%_50%/0.2)]',
       // 占位符
-      'placeholder:text-muted-foreground',
+      'placeholder:text-white/70',
       // 禁用
       'disabled:cursor-not-allowed disabled:opacity-50',
       '[&>span]:line-clamp-1',
@@ -42,7 +42,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+      <ChevronDown className="h-4 w-4 text-white transition-transform duration-200" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -55,7 +55,7 @@ const SelectScrollUpButton = React.forwardRef<
   <SelectPrimitive.ScrollUpButton
     ref={ref}
     className={cn(
-      'flex cursor-default items-center justify-center py-1 text-muted-foreground',
+      'flex cursor-default items-center justify-center py-1 text-white',
       className,
     )}
     {...props}
@@ -72,7 +72,7 @@ const SelectScrollDownButton = React.forwardRef<
   <SelectPrimitive.ScrollDownButton
     ref={ref}
     className={cn(
-      'flex cursor-default items-center justify-center py-1 text-muted-foreground',
+      'flex cursor-default items-center justify-center py-1 text-white',
       className,
     )}
     {...props}
@@ -96,7 +96,7 @@ const SelectContent = React.forwardRef<
         'rounded-xl',
         'bg-[hsl(225_35%_10%/0.95)] backdrop-blur-xl',
         'border border-border/50',
-        'text-popover-foreground',
+        'text-white',
         // 阴影
         'shadow-2xl shadow-black/40',
         'shadow-[0_0_40px_-10px_hsl(175_85%_50%/0.1)]',
@@ -136,7 +136,7 @@ const SelectLabel = React.forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={cn(
-      'py-1.5 pl-8 pr-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+      'py-1.5 pl-8 pr-2 text-xs font-semibold uppercase tracking-wider text-white',
       className,
     )}
     {...props}
@@ -152,7 +152,7 @@ const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       'relative flex w-full cursor-pointer select-none items-center rounded-lg py-2.5 pl-8 pr-3 text-sm',
-      'text-foreground',
+      'text-white',
       'outline-none',
       'transition-all duration-150',
       // Hover 效果
