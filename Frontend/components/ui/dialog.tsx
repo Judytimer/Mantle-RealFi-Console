@@ -44,9 +44,9 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4',
-        // 玻璃拟态卡片
+        // 玻璃拟态卡片 - 青白色背景，比大背景深一点
         'rounded-2xl p-6',
-        'bg-gradient-to-br from-[hsl(225_35%_12%/0.95)] to-[hsl(225_35%_8%/0.9)]',
+        'bg-gradient-to-br from-[hsl(190_30%_90%/0.95)] to-[hsl(190_30%_87%/0.9)]',
         'backdrop-blur-xl',
         'border border-border/50',
         // 霓虹发光阴影

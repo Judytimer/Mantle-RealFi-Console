@@ -258,7 +258,7 @@ export default function AddPositionModal({
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-lg w-full max-w-md">
+      <div className="bg-gradient-to-br from-[hsl(190_30%_90%/0.95)] to-[hsl(190_30%_87%/0.9)] backdrop-blur-xl border border-border rounded-lg w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold">Add Position</h3>
           <Button

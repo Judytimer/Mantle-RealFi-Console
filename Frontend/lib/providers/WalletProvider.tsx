@@ -1,7 +1,7 @@
 'use client'
 
 import { toast } from 'sonner'
-import { createContext, useEffect, useMemo } from 'react'
+import React, { createContext, useEffect, useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   WagmiProvider,
@@ -79,7 +79,10 @@ function WalletProviderInner({ children }: { children: React.ReactNode }) {
       const error = connectHook.error
       if (error.message.includes('User rejected')) {
         toast.error('Wallet connection rejected')
-      } else if (error.message.includes('No Ethereum provider')) {
+      } else if (
+        error.message.includes('No Ethereum provider') ||
+        error.message.includes('Provider not found')
+      ) {
         toast.error('Please install MetaMask or connect a wallet', {
           action: {
             label: 'Install MetaMask',
@@ -107,16 +110,17 @@ function WalletProviderInner({ children }: { children: React.ReactNode }) {
   }, [switchChainHook.error])
 
   const handleConnect = () => {
-    // Try to find MetaMask connector (check multiple possible IDs and names)
-    const metaMaskConnector = connectors.find(
-      (c: { id: string; name?: string; type?: string }) =>
-        c.id === 'metaMask' ||
-        c.id === 'io.metamask' ||
-        c.id === 'injected' ||
-        c.name?.toLowerCase().includes('metamask') ||
-        (c.type === 'injected' &&
-          typeof window !== 'undefined' &&
-          (window.ethereum as any)?.isMetaMask),
+    const hasInjectedProvider =
+      typeof window !== 'undefined' && (window.ethereum || (window as any).web3)
+
+    const metaMaskSdkConnector = connectors.find(
+      (c: { id: string; name?: string }) =>
+        c.id === 'metaMaskSDK' || c.name?.toLowerCase() === 'metamask',
+    )
+
+    const injectedConnector = connectors.find(
+      (c: { id: string; type?: string }) =>
+        c.id === 'injected' || c.type === 'injected',
     )
 
     // Try WalletConnect connector
@@ -125,12 +129,24 @@ function WalletProviderInner({ children }: { children: React.ReactNode }) {
         c.id === 'walletConnect' || c.id === 'walletConnectLegacy',
     )
 
-    // Check for injected provider
-    const hasInjectedProvider =
-      typeof window !== 'undefined' && (window.ethereum || (window as any).web3)
+    if (!hasInjectedProvider && !walletConnectConnector && !metaMaskSdkConnector) {
+      toast.error('No wallet found. Please install MetaMask.', {
+        action: {
+          label: 'Install MetaMask',
+          onClick: () => {
+            window.open('https://metamask.io/download/', '_blank')
+          },
+        },
+      })
+      return
+    }
 
-    if (metaMaskConnector) {
-      connectHook.mutate({ connector: metaMaskConnector })
+    const preferredConnector = hasInjectedProvider
+      ? metaMaskSdkConnector ?? injectedConnector
+      : walletConnectConnector ?? metaMaskSdkConnector
+
+    if (preferredConnector) {
+      connectHook.mutate({ connector: preferredConnector })
     } else if (walletConnectConnector) {
       connectHook.mutate({ connector: walletConnectConnector })
     } else if (hasInjectedProvider && connectors.length > 0) {
@@ -218,7 +234,7 @@ function WalletProviderInner({ children }: { children: React.ReactNode }) {
       switchNetwork: handleSwitchNetwork,
       addNetwork: handleAddNetwork,
     }),
-    [chainId, isConnected, address, connectors, switchChainHook],
+    [chainId, isConnected, address, connectHook, disconnectHook, switchChainHook, connectors],
   )
 
   return (
