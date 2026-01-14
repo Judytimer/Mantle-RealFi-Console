@@ -12,6 +12,7 @@ import {
   Gauge,
   ShieldAlert,
   Users,
+  type LucideIcon,
 } from 'lucide-react'
 import {
   Bar,
@@ -87,6 +88,16 @@ const formatRWA = (value: number) => {
 }
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`
+
+type HealthStatus = 'good' | 'warn' | 'critical'
+
+type HealthSignal = {
+  label: string
+  value: string
+  status: HealthStatus
+  description: string
+  icon: LucideIcon
+}
 
 export default function AdminAnalyticsPage() {
   const { address } = useAccount()
@@ -220,7 +231,7 @@ export default function AdminAnalyticsPage() {
   const highRiskAum = riskDistribution[2]?.aum || 0
   const highRiskShare = totalAum > 0 ? (highRiskAum / totalAum) * 100 : 0
 
-  const healthSignals = [
+  const healthSignals: HealthSignal[] = [
     {
       label: 'Pending Applications',
       value: pendingApplications.toString(),
@@ -262,7 +273,7 @@ export default function AdminAnalyticsPage() {
     },
   ]
 
-  const statusStyle = (status: 'good' | 'warn' | 'critical') => {
+  const statusStyle = (status: HealthStatus) => {
     if (status === 'good')
       return 'bg-green-500/10 text-green-500 border-green-500/20'
     if (status === 'warn')
